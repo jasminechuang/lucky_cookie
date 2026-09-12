@@ -25,7 +25,7 @@
     <!-- 頁首標題 -->
     <header class="text-center mt-6">
         <h1 class="text-3xl font-bold text-amber-800 tracking-wider">🥠 每日幸運餅乾</h1>
-        <p class="text-sm text-amber-600 mt-1">點擊餅乾，揭曉你今天的專屬小語與運勢！</p>
+        <p class="text-sm text-amber-600 mt-1">一天一籤，揭曉你今天的專屬小語與運勢！</p>
     </header>
 
     <!-- 主要互動區 -->
@@ -37,13 +37,13 @@
                 🥠
             </div>
             <p class="mt-6 text-amber-700 font-medium bg-amber-200/60 px-4 py-2 rounded-full inline-block shadow-sm">
-                ✨ 點擊餅乾來剝開它
+                ✨ 點擊餅乾來剝開今日運勢
             </p>
         </div>
 
         <!-- 籤詩顯示區（預設隱藏） -->
         <div id="fortune-card" class="hidden bg-white/90 backdrop-blur-md rounded-2xl shadow-xl p-8 w-full border border-amber-200 text-center transform transition-all duration-500 scale-95 opacity-0">
-            <div class="text-xs uppercase tracking-widest text-amber-500 font-semibold mb-2">✦ 今日籤詩 ✦</div>
+            <div id="card-badge" class="text-xs uppercase tracking-widest text-amber-500 font-semibold mb-2">✦ 今日運勢已解鎖 ✦</div>
             <p id="fortune-text" class="text-lg font-medium text-gray-700 my-4 leading-relaxed"></p>
             
             <div class="flex justify-center gap-6 my-4 text-sm text-gray-600 bg-amber-50 py-3 rounded-xl border border-amber-100">
@@ -58,9 +58,7 @@
                 </div>
             </div>
 
-            <button onclick="resetCookie()" class="mt-6 w-full bg-amber-600 hover:bg-amber-700 text-white font-medium py-2.5 px-6 rounded-xl shadow transition-colors">
-                再抽一次餅乾 🥠
-            </button>
+            <p id="daily-tip" class="text-xs text-gray-400 mt-4">明天再來抽取新的幸運餅乾喔！</p>
         </div>
 
     </main>
@@ -76,7 +74,7 @@
                 <li class="text-gray-400 italic">尚未有抽籤紀錄...</li>
             </ul>
         </div>
-        <p class="text-center text-xs text-amber-600/60 mt-4">Lucky Cookie Prototype © 2026</p>
+        <p class="text-center text-xs text-amber-600/60 mt-4">Lucky Cookie App © 2026</p>
     </footer>
 
     <!-- JavaScript 互動邏輯 -->
@@ -94,15 +92,22 @@
         ];
 
         let history = JSON.parse(localStorage.getItem('lucky_cookie_history')) || [];
-        renderHistory();
+        
+        // 取得今天的日期字串 (格式：YYYY-MM-DD)
+        const todayStr = new Date().toISOString().split('T')[0];
+        const savedData = JSON.parse(localStorage.getItem('lucky_cookie_daily'));
+
+        // 頁面載入時檢查今天是否已經抽過
+        window.addEventListener('DOMContentLoaded', () => {
+            renderHistory();
+            if (savedData && savedData.date === todayStr) {
+                // 如果今天已經抽過，直接顯示今天的籤詩，隱藏未開的餅乾
+                showFortuneCard(savedData.fortune, true);
+            }
+        });
 
         function crackCookie() {
-            const cookieContainer = document.getElementById('cookie-container');
             const cookieIcon = document.getElementById('cookie-icon');
-            const fortuneCard = document.getElementById('fortune-card');
-            const fortuneText = document.getElementById('fortune-text');
-            const luckyNumber = document.getElementById('lucky-number');
-            const luckyColor = document.getElementById('lucky-color');
 
             // 播放晃動特效
             cookieIcon.classList.add('animate-shake');
@@ -111,49 +116,62 @@
                 // 隨機抽選一則籤詩
                 const randomFortune = fortunes[Math.floor(Math.random() * fortunes.length)];
                 
-                // 填入資料
-                fortuneText.textContent = randomFortune.text;
-                luckyNumber.textContent = randomFortune.numbers.join(', ');
-                luckyColor.textContent = randomFortune.color;
+                // 儲存今天的抽籤結果到 LocalStorage
+                localStorage.setItem('lucky_cookie_daily', JSON.stringify({
+                    date: todayStr,
+                    fortune: randomFortune
+                }));
 
-                // 隱藏餅乾，顯示籤詩卡片
-                cookieContainer.classList.add('hidden');
-                fortuneCard.classList.remove('hidden');
-                
-                // 讓卡片淡入放大
-                setTimeout(() => {
-                    fortuneCard.classList.remove('scale-95', 'opacity-0');
-                    fortuneCard.classList.add('scale-100', 'opacity-100');
-                }, 50);
+                // 顯示籤詩
+                showFortuneCard(randomFortune, false);
 
                 // 儲存到歷史紀錄
                 saveToHistory(randomFortune.text);
 
-                // 移除晃動動畫類別供下次使用
+                // 移除晃動動畫類別
                 cookieIcon.classList.remove('animate-shake');
             }, 500);
         }
 
-        function resetCookie() {
+        function showFortuneCard(fortune, isAlreadyDrawn) {
             const cookieContainer = document.getElementById('cookie-container');
             const fortuneCard = document.getElementById('fortune-card');
+            const fortuneText = document.getElementById('fortune-text');
+            const luckyNumber = document.getElementById('lucky-number');
+            const luckyColor = document.getElementById('lucky-color');
+            const cardBadge = document.getElementById('card-badge');
 
-            // 隱藏籤詩卡片，顯示餅乾
-            fortuneCard.classList.remove('scale-100', 'opacity-100');
-            fortuneCard.classList.add('scale-95', 'opacity-0');
+            // 填入資料
+            fortuneText.textContent = fortune.text;
+            luckyNumber.textContent = fortune.numbers.join(', ');
+            luckyColor.textContent = fortune.color;
 
+            if (isAlreadyDrawn) {
+                cardBadge.textContent = "✦ 今日已領取過幸運餅乾 ✦";
+            } else {
+                cardBadge.textContent = "✦ 今日籤詩已解鎖 ✦";
+            }
+
+            // 隱藏餅乾，顯示籤詩卡片
+            cookieContainer.classList.add('hidden');
+            fortuneCard.classList.remove('hidden');
+            
+            // 讓卡片淡入放大
             setTimeout(() => {
-                fortuneCard.classList.add('hidden');
-                cookieContainer.classList.remove('hidden');
-            }, 300);
+                fortuneCard.classList.remove('scale-95', 'opacity-0');
+                fortuneCard.classList.add('scale-100', 'opacity-100');
+            }, 50);
         }
 
         function saveToHistory(text) {
             const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-            history.unshift({ time: timeStr, text: text });
-            if (history.length > 5) history.pop(); // 最多保留 5 筆
-            localStorage.setItem('lucky_cookie_history', JSON.stringify(history));
-            renderHistory();
+            // 避免同一天重複推入歷史
+            if (!history.some(item => item.date === todayStr)) {
+                history.unshift({ date: todayStr, time: timeStr, text: text });
+                if (history.length > 5) history.pop();
+                localStorage.setItem('lucky_cookie_history', JSON.stringify(history));
+                renderHistory();
+            }
         }
 
         function renderHistory() {
@@ -166,7 +184,7 @@
             historyList.innerHTML = history.map(item => `
                 <li class="truncate bg-amber-50/50 px-2 py-1 rounded flex justify-between items-center">
                     <span class="truncate mr-2">🥠 ${item.text}</span>
-                    <span class="text-gray-400 text-[10px] shrink-0">${item.time}</span>
+                    <span class="text-gray-400 text-[10px] shrink-0">${item.date}</span>
                 </li>
             `).join('');
         }
@@ -174,7 +192,9 @@
         function clearHistory() {
             history = [];
             localStorage.removeItem('lucky_cookie_history');
+            localStorage.removeItem('lucky_cookie_daily'); // 同時清除當日狀態方便測試
             renderHistory();
+            location.reload(); // 重新整理頁面重置狀態
         }
     </script>
 </body>
