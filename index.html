@@ -201,11 +201,15 @@
         let userProfile = JSON.parse(localStorage.getItem('lucky_cookie_profile')) || null;
         let historyData = JSON.parse(localStorage.getItem('lucky_cookie_astrology_map')) || {};
         
-      const now = new Date();
-    　const year = now.getFullYear();
-　　　const month = String(now.getMonth() + 1).padStart(2, '0');
-　　　const day = String(now.getDate()).padStart(2, '0');
-　　　const todayStr = `${year}-${month}-${day}`;
+        // 正確抓取電腦本地時間
+        const now = new Date();
+        const year = now.getFullYear();
+        const month = String(now.getMonth() + 1).padStart(2, '0');
+        const day = String(now.getDate()).padStart(2, '0');
+        const todayStr = `${year}-${month}-${day}`;
+
+        let currentYear = now.getFullYear();
+        let currentMonth = now.getMonth();
 
         window.addEventListener('DOMContentLoaded', () => {
             updateProfileUI();
@@ -216,12 +220,10 @@
             renderCalendar();
         });
 
-        // 檢查並顯示電腦版提醒
         function checkReminderStatus() {
             const banner = document.getElementById('reminder-banner');
             if (!historyData[todayStr]) {
                 banner.classList.remove('hidden');
-                // 如果瀏覽器支援通知且已經授權，直接發送桌面通知
                 if (window.Notification && Notification.permission === "granted") {
                     new Notification("🌟 星象幸運餅乾提醒", {
                         body: "今天的星象餅乾還沒拆開喔！快來看看今天的運勢吧！",
@@ -432,7 +434,7 @@
                 if (hasRecord) {
                     cellClass += "bg-amber-500 text-gray-950 font-bold cursor-pointer hover:bg-amber-400 shadow-md";
                 } else {
-                    cellClass += "text-purple-300/70";
+                    cellClass += "text-purple-200 font-medium";
                 }
 
                 if (isToday) {
