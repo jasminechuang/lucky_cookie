@@ -18,12 +18,26 @@
         .animate-shake {
             animation: shake 0.5s ease-in-out;
         }
+        @keyframes pulse-glow {
+            0%, 100% { box-shadow: 0 0 15px rgba(251, 191, 36, 0.3); }
+            50% { box-shadow: 0 0 25px rgba(251, 191, 36, 0.7); }
+        }
+        .cookie-glow {
+            animation: pulse-glow 3s infinite;
+        }
     </style>
 </head>
 <body class="bg-gradient-to-br from-indigo-950 via-purple-900 to-amber-950 min-h-screen flex flex-col items-center justify-between p-6 text-gray-100">
 
     <!-- 頁首標題與分頁切換 -->
-    <header class="text-center mt-4 w-full max-w-md">
+    <header class="text-center mt-2 w-full max-w-md">
+        
+        <!-- 電腦版提醒狀態 Banner (未抽籤時顯示) -->
+        <div id="reminder-banner" class="hidden mb-3 bg-amber-500/20 border border-amber-400 text-amber-200 px-3 py-2 rounded-xl text-xs flex justify-between items-center shadow-lg animate-pulse">
+            <span>✨ 今天的星象餅乾還沒拆開喔！</span>
+            <button onclick="requestDesktopNotification()" class="bg-amber-500 text-gray-950 px-2 py-1 rounded-lg font-bold text-[10px] hover:bg-amber-400 transition-colors">開啟桌面通知</button>
+        </div>
+
         <h1 class="text-3xl font-bold text-amber-300 tracking-wider">🌟 命盤星象幸運餅乾</h1>
         <p class="text-xs text-purple-200 mt-1">融合星座命盤與東方流年運勢的專屬解籤</p>
         
@@ -47,7 +61,7 @@
         <div id="view-cookie" class="w-full flex flex-col items-center">
             <!-- 未開餅乾狀態 -->
             <div id="cookie-container" class="cursor-pointer text-center transition-transform hover:scale-105 active:scale-95 py-8" onclick="crackCookie()">
-                <div id="cookie-icon" class="text-9xl select-none filter drop-shadow-[0_10px_15px_rgba(251,191,36,0.3)]">
+                <div id="cookie-icon" class="text-9xl select-none filter drop-shadow-[0_10px_15px_rgba(251,191,36,0.3)] cookie-glow rounded-full p-4">
                     🥠
                 </div>
                 <p class="mt-6 text-amber-200 font-medium bg-amber-500/20 border border-amber-500/30 px-5 py-2.5 rounded-full inline-block shadow-sm">
@@ -64,7 +78,7 @@
                 
                 <!-- 命盤靈性解析 -->
                 <div id="astrology-insight" class="bg-purple-900/50 border border-purple-700/50 rounded-xl p-3 my-3 text-left text-xs text-purple-200 space-y-1">
-                    <!-- 動態帶入守護星與宮位指引 -->
+                    <!-- 動態帶入 -->
                 </div>
 
                 <div class="flex justify-center gap-4 my-3 text-sm text-gray-300 bg-purple-900/80 py-2.5 rounded-xl border border-purple-700/40">
@@ -118,7 +132,7 @@
     <div id="profile-modal" class="fixed inset-0 bg-black/70 backdrop-blur-sm hidden flex items-center justify-center p-4 z-50">
         <div class="bg-purple-950 border border-amber-500/40 rounded-2xl p-6 w-full max-w-sm shadow-2xl text-gray-100">
             <h3 class="text-lg font-bold text-amber-300 mb-2">🔮 設定你的命盤星象</h3>
-            <p class="text-xs text-purple-200 mb-4">輸入生日將自動對應星座、守護星與東方紫微命宮流年，讓餅乾更貼近你的運勢軌跡。</p>
+            <p class="text-xs text-purple-200 mb-4">輸入生日將自動對應星座、守護星與東方紫微命宮流年。</p>
             
             <div class="space-y-4">
                 <div>
@@ -158,9 +172,8 @@
         <button onclick="clearHistory()" class="text-[11px] text-purple-400/70 hover:text-red-400 transition-colors mt-1 underline">清除所有紀錄與重置</button>
     </footer>
 
-    <!-- JavaScript 互動與星象邏輯 -->
+    <!-- JavaScript 互動與電腦版提醒邏輯 -->
     <script>
-        // 星座與星象資料庫（結合西方元素與類似紫微命宮流年的智慧解讀）
         const fortunePool = [
             { text: "命宮紫微星曜閃耀，今日在事業與學業上將有突破性的靈感降臨。", ziwei: "紫微命宮：主領導力與貴人提拔，勇敢展現自我。" },
             { text: "財帛宮位氣場流轉，正財運穩健，適合審視財務配置或規劃長遠投資。", ziwei: "武曲財星：主財源廣進，精準決策帶來實質收穫。" },
@@ -170,7 +183,6 @@
             { text: "夫妻宮與人際宮位連結緊密，真誠的傾聽與溫暖互動將為你贏得信任。", ziwei: "天梁蔭星：主長輩緣與貴人庇佑，以誠待人福報自來。" }
         ];
 
-        // 守護星與元素對照
         const zodiacMeta = {
             "牡羊座": { element: "火象", star: "火星", palace: "命宮・開創" },
             "金牛座": { element: "土象", star: "金星", palace: "財帛・積蓄" },
@@ -186,7 +198,6 @@
             "雙魚座": { element: "水象", star: "海王星", palace: "父母・直覺" }
         };
 
-        // 狀態管理
         let userProfile = JSON.parse(localStorage.getItem('lucky_cookie_profile')) || null;
         let historyData = JSON.parse(localStorage.getItem('lucky_cookie_astrology_map')) || {};
         
@@ -196,13 +207,48 @@
 
         window.addEventListener('DOMContentLoaded', () => {
             updateProfileUI();
+            checkReminderStatus();
             if (historyData[todayStr]) {
                 showFortuneCard(historyData[todayStr], true);
             }
             renderCalendar();
         });
 
-        // 命盤設定互動
+        // 檢查並顯示電腦版提醒
+        function checkReminderStatus() {
+            const banner = document.getElementById('reminder-banner');
+            if (!historyData[todayStr]) {
+                banner.classList.remove('hidden');
+                // 如果瀏覽器支援通知且已經授權，直接發送桌面通知
+                if (window.Notification && Notification.permission === "granted") {
+                    new Notification("🌟 星象幸運餅乾提醒", {
+                        body: "今天的星象餅乾還沒拆開喔！快來看看今天的運勢吧！",
+                        icon: "🥠"
+                    });
+                }
+            } else {
+                banner.classList.add('hidden');
+            }
+        }
+
+        function requestDesktopNotification() {
+            if (!window.Notification) {
+                alert("你的瀏覽器不支援桌面通知功能。");
+                return;
+            }
+            Notification.requestPermission().then(permission => {
+                if (permission === "granted") {
+                    new Notification("✨ 通知已開啟成功！", {
+                        body: "往後每天打開網頁時，就會準時提醒你抽餅乾！",
+                        icon: "🥠"
+                    });
+                    document.getElementById('reminder-banner').innerHTML = `<span>✨ 桌面通知已啟用，祝你今日運勢亨通！</span>`;
+                } else {
+                    alert("您已封鎖通知權限，可從瀏覽器設定中解除封鎖。");
+                }
+            });
+        }
+
         function openProfileModal() {
             document.getElementById('profile-modal').classList.remove('hidden');
             if (userProfile) {
@@ -222,10 +268,7 @@
             if (!zodiac && bday) {
                 zodiac = calculateZodiac(bday);
             }
-
-            if (!zodiac) {
-                zodiac = "牡羊座"; // 預設
-            }
+            if (!zodiac) zodiac = "牡羊座";
 
             userProfile = {
                 birthday: bday,
@@ -267,7 +310,6 @@
             }
         }
 
-        // 頁籤切換
         function switchTab(tab) {
             const tabCookie = document.getElementById('tab-cookie');
             const tabCalendar = document.getElementById('tab-calendar');
@@ -322,6 +364,7 @@
                 localStorage.setItem('lucky_cookie_astrology_map', JSON.stringify(historyData));
 
                 showFortuneCard(record, false);
+                checkReminderStatus();
                 cookieIcon.classList.remove('animate-shake');
             }, 500);
         }
@@ -349,11 +392,7 @@
                 <div>• 流年星曜：${fortune.ziwei}</div>
             `;
 
-            if (isAlreadyDrawn) {
-                cardBadge.textContent = "✦ 今日命盤運勢已解鎖 ✦";
-            } else {
-                cardBadge.textContent = "✦ 星象動能感應完成 ✦";
-            }
+            cardBadge.textContent = isAlreadyDrawn ? "✦ 今日命盤運勢已解鎖 ✦" : "✦ 星象動能感應完成 ✦";
 
             cookieContainer.classList.add('hidden');
             fortuneCard.classList.remove('hidden');
@@ -364,7 +403,6 @@
             }, 50);
         }
 
-        // 渲染日曆
         function renderCalendar() {
             const title = document.getElementById('calendar-month-title');
             const grid = document.getElementById('calendar-grid');
